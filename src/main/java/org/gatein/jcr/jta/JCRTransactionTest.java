@@ -170,6 +170,43 @@ public class JCRTransactionTest implements Startable
       session.logout();
    }
 
+   @Managed
+   @ManagedDescription("test to simulate with setRollbackOnly. See server log once you execute this operation.")
+   @Impact(ImpactType.WRITE)
+   public void testRollback() throws Exception
+   {
+      log.info("Starting the test for JTA rollback");
+
+      // JTA transaction 1
+      beginJTATransaction();
+
+      // Obtain JCR session and base node
+      ManageableRepository repo = repositoryService.getDefaultRepository();
+      Session session = repo.getSystemSession("portal-work");
+
+      // Save node '/test/a'
+      Node parentNode = (Node)session.getItem("/");
+      Node testNode;
+      if (parentNode.hasNode("test"))
+      {
+         testNode = parentNode.getNode("test");
+      }
+      else
+      {
+         testNode = parentNode.addNode("test", "nt:folder");
+      }
+
+      // Add node and save JCR session
+      Node aNode = testNode.addNode("a", "nt:folder");
+      log.info("Node '/test/a' created in JCR workspace");
+
+      // setRollbackOnly
+      getUserTransaction().setRollbackOnly();
+
+      session.save();
+      log.info("JCR session saved");
+   }
+
    private void executeTestQuery(Session session) throws Exception
    {
       QueryManager queryMgr = session.getWorkspace().getQueryManager();
