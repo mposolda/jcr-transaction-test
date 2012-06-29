@@ -176,15 +176,12 @@ public class JCRTransactionTest implements Startable
    public void testRollback() throws Exception
    {
       log.info("Starting the test for JTA rollback");
-
-      // JTA transaction 1
       beginJTATransaction();
 
       // Obtain JCR session and base node
       ManageableRepository repo = repositoryService.getDefaultRepository();
       Session session = repo.getSystemSession("portal-work");
 
-      // Save node '/test/a'
       Node parentNode = (Node)session.getItem("/");
       Node testNode;
       if (parentNode.hasNode("test"))
@@ -197,10 +194,10 @@ public class JCRTransactionTest implements Startable
       }
 
       // Add node and save JCR session
-      Node aNode = testNode.addNode("a", "nt:folder");
+      testNode.addNode("a", "nt:folder");
       log.info("Node '/test/a' created in JCR workspace");
 
-      // setRollbackOnly
+      // mark tx for rollback
       getUserTransaction().setRollbackOnly();
 
       session.save();
