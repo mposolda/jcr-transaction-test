@@ -202,6 +202,8 @@ public class JCRTransactionTest implements Startable
 
       session.save();
       log.info("JCR session saved");
+
+      finishJTATransaction();
    }
 
    private void executeTestQuery(Session session) throws Exception
