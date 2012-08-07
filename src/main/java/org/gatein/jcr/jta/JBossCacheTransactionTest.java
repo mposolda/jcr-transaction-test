@@ -32,6 +32,8 @@ import org.exoplatform.management.jmx.annotations.Property;
 import org.exoplatform.services.jcr.RepositoryService;
 import org.exoplatform.services.organization.OrganizationService;
 import org.exoplatform.services.organization.Query;
+import org.exoplatform.services.organization.User;
+import org.exoplatform.services.organization.idm.UserImpl;
 import org.gatein.common.logging.Logger;
 import org.gatein.common.logging.LoggerFactory;
 import org.jboss.cache.Cache;
@@ -77,8 +79,14 @@ public class JBossCacheTransactionTest implements Startable
 
    public static final String NODE_OBJECT_KEY = "object";
 
-   public static final int expiration = 5000;
+   public static final int expiration = 50000;
 
+   private OrganizationService orgService;
+
+   public JBossCacheTransactionTest(OrganizationService orgService)
+   {
+      this.orgService = orgService;
+   }
 
    private void putGtnUserLazyPageList(String ns, Object objectToPut)
    {
@@ -190,6 +198,9 @@ public class JBossCacheTransactionTest implements Startable
       invalidateAll();
       log.info("Object returned after invalidation (expected null) : " + getGtnUserLazyPageList(ns));
 
+      // Create user (This will enforce some hibernate operations. There is assumption that Hibernate is causing transaction inconsistency)
+      createSampleUser("chuann");
+
       putGtnUserLazyPageList(ns, o2);
       o2.changeState();
       log.info("Second object returned (expected o2) : " + getGtnUserLazyPageList(ns));
@@ -257,5 +268,23 @@ public class JBossCacheTransactionTest implements Startable
    @Override
    public void stop()
    {
+   }
+
+   private void createSampleUser(String username)
+   {
+      // Create user
+      User userr = new UserImpl(username);
+      userr.setPassword("password");
+      userr.setFirstName("johny");
+      userr.setLastName("Kikako");
+      userr.setEmail("johny@seznam.cz");
+      try
+      {
+         orgService.getUserHandler().createUser(userr, true);
+      }
+      catch (Exception e)
+      {
+         e.printStackTrace();
+      }
    }
 }
