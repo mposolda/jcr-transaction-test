@@ -8,4 +8,12 @@
       <type>org.gatein.jcr.jta.JCRTransactionTest</type>
    </component>
 
+   <component>
+      <type>org.gatein.jcr.jta.JBossCacheTransactionTest</type>
+   </component>
+
+   <component>
+      <type>org.exoplatform.services.organization.idm.PicketlinkCacheTransactionTest</type>
+   </component>
+
 </configuration>

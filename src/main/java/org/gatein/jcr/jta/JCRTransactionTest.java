@@ -58,9 +58,7 @@ import javax.transaction.UserTransaction;
 public class JCRTransactionTest implements Startable
 {
    private static final Logger log = LoggerFactory.getLogger(JCRTransactionTest.class);
-
    private RepositoryService repositoryService;
-   private UserTransaction userTransaction;
 
    public JCRTransactionTest(RepositoryService repositoryService)
    {
@@ -117,7 +115,7 @@ public class JCRTransactionTest implements Startable
       log.info("Starting the jta test");
 
       // JTA transaction 1
-      beginJTATransaction();
+      JTAHelper.beginJTATransaction();
 
       // Obtain JCR session and base node
       ManageableRepository repo = repositoryService.getDefaultRepository();
@@ -143,8 +141,8 @@ public class JCRTransactionTest implements Startable
       executeTestQuery(session);
 
       // Commit transaction 1. Start transaction 2.
-      finishJTATransaction();
-      beginJTATransaction();
+      JTAHelper.finishJTATransaction();
+      JTAHelper.beginJTATransaction();
 
       // Execute JCR query. Now node is covered in the results
       executeTestQuery(session);
@@ -159,13 +157,13 @@ public class JCRTransactionTest implements Startable
       executeTestQuery(session);
 
       // Commit transaction 2. Start transaction 3.
-      finishJTATransaction();
-      beginJTATransaction();
+      JTAHelper.finishJTATransaction();
+      JTAHelper.beginJTATransaction();
 
       // Now node is deleted as expected
       executeTestQuery(session);
 
-      finishJTATransaction();
+      JTAHelper.finishJTATransaction();
 
       session.logout();
    }
@@ -176,7 +174,7 @@ public class JCRTransactionTest implements Startable
    public void testRollback() throws Exception
    {
       log.info("Starting the test for JTA rollback");
-      beginJTATransaction();
+      JTAHelper.beginJTATransaction();
 
       // Obtain JCR session and base node
       ManageableRepository repo = repositoryService.getDefaultRepository();
@@ -198,12 +196,12 @@ public class JCRTransactionTest implements Startable
       log.info("Node '/test/a' created in JCR workspace");
 
       // mark tx for rollback
-      getUserTransaction().setRollbackOnly();
+      JTAHelper.getUserTransaction().setRollbackOnly();
 
       session.save();
       log.info("JCR session saved");
 
-      finishJTATransaction();
+      JTAHelper.finishJTATransaction();
    }
 
    private void executeTestQuery(Session session) throws Exception
@@ -212,60 +210,6 @@ public class JCRTransactionTest implements Startable
       Query query = queryMgr.createQuery("SELECT * FROM nt:folder WHERE jcr:path LIKE '/test/%'", Query.SQL);
       QueryResult queryResult = query.execute();
       log.info("Number of subnodes of node '/test': " + queryResult.getNodes().getSize());
-   }
-
-   private void beginJTATransaction() throws Exception
-   {
-      UserTransaction tx = getUserTransaction();
-
-      if (tx.getStatus() == Status.STATUS_NO_TRANSACTION)
-      {
-         tx.begin();
-         log.info("UserTransaction started");
-      }
-      else
-      {
-         log.warn("UserTransaction not started as it's in state " + tx.getStatus());
-      }
-   }
-
-   private void finishJTATransaction() throws Exception
-   {
-      UserTransaction tx = getUserTransaction();
-
-      int txStatus = tx.getStatus();
-      if (txStatus == Status.STATUS_NO_TRANSACTION)
-      {
-         log.warn("UserTransaction can't be finished as it wasn't started");
-      }
-      else if (txStatus == Status.STATUS_MARKED_ROLLBACK || txStatus == Status.STATUS_ROLLEDBACK || txStatus == Status.STATUS_ROLLING_BACK)
-      {
-         log.warn("Going to rollback UserTransaction as it's status is " + txStatus);
-         tx.rollback();
-      }
-      else
-      {
-         log.info("Going to commit UserTransaction");
-         tx.commit();
-         log.info("UserTransaction commited");
-      }
-   }
-
-   // It's fine to reuse same instance of UserTransaction as UserTransaction is singleton in JBoss and most other AS.
-   // And new InitialContext().lookup("java:comp/UserTransaction") is quite expensive operation
-   private UserTransaction getUserTransaction() throws Exception
-   {
-      if (userTransaction == null)
-      {
-         synchronized (this)
-         {
-            if (userTransaction == null)
-            {
-               userTransaction = (UserTransaction)new InitialContext().lookup("java:comp/UserTransaction");
-            }
-         }
-      }
-      return userTransaction;
    }
 
    @Override
